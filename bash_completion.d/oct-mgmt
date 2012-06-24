@@ -1,0 +1,21 @@
+# bash completion for oct-cmd
+
+have oct-mgmt &&
+_oct_mgmt()
+{
+	local cur prev cword words
+
+	COMPREPLY=()
+
+    _get_comp_words_by_ref cur prev cword words
+	#cur=${COMP_WORDS[COMP_CWORD]}
+
+	COMPREPLY=($( compgen -W "$(oct-mgmt auto-complete-opt)" -- $cur ))
+
+    if [[ "$prev" == "list" ]] ; then
+        COMPREPLY=( $( compgen -W "$(oct-mgmt list)" -- $cur ) )
+    fi
+}
+complete -F _oct_mgmt  oct-mgmt
+
+# vim:fdm=sh:et:fdl=0:

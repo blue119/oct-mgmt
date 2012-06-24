@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+
+RAKE=`which rake`
+DEPOT=''
+HOMEPAGE=${DEPOT}/public/index.html
+POSTS_DIR=${DEPOT}/source/_posts
+SUFFIX='markdown'
+ALL_CMD=()
+
+#simple color code remapping
+COLOR_BLACK='\033[30m'
+COLOR_RED='\033[31m'
+COLOR_GREEN='\033[32m'
+COLOR_YELLOW='\033[33m'
+COLOR_BLUE='\033[34m'
+COLOR_PINK='\033[35m'
+COLOR_CYAN='\033[36m'
+COLOR_WHITE='\033[37m'
+COLOR_END='\033[0m'
+
+function cmd_reg()
+{
+	ALL_CMD+=("$1")
+}
+
+function _get_page_time()
+{
+	local page=$1
+
+	test -f ${page} || die "Can not found ${page}"
+	ret=($(ls ${page} --time-style=+%FT%R:%S -al))
+	echo ${ret[-2]}
+}
+
+function die()
+{
+	echo "$1"
+	exit -1
+}
+
+function new()
+{
+	post_name=$1
+	cd ${DEPOT} && ${RAKE} new_post["${post_name}"]
+}
+cmd_reg new
+
+function preview()
+{
+	cd ${DEPOT} && ${RAKE} preview
+}
+cmd_reg preview
+
+function deploy()
+{
+	cd ${DEPOT} && ${RAKE} deploy
+}
+cmd_reg deploy
+
+function generate()
+{
+	cd ${DEPOT} && ${RAKE} generate
+}
+cmd_reg generate
+
+function _get_posts()
+{
+	local posts=(`ls ${POSTS_DIR}`)
+	local no_suffix=(${posts[*]/%.${SUFFIX}/})
+	echo ${no_suffix[*]}
+}
+
+function _get_post_path()
+{
+	local post=$1
+	echo "${POSTS_DIR}/${post}.${SUFFIX}"
+}
+
+# list all article
+function list_post()
+{
+	local posts=(`_get_posts`)
+
+	echo -e "last generating page time: ${COLOR_RED} `_get_page_time ${HOMEPAGE}` ${COLOR_END}"
+	for (( i = 0; i < ${#posts[*]}; i++ )); do
+		echo -e "${posts[i]}\t ${COLOR_YELLOW} $(_get_page_time $(_get_post_path ${posts[i]}))${COLOR_END}"
+	done
+}
+cmd_reg list
+
+function del_post()
+{
+	local posts=(`_get_posts`)
+	local post_path=${POSTS_DIR}/$1.${SUFFIX}
+
+	test -f ${post_path} || die "Can not found ${post_path}"
+	rm ${post_path} || die "not able to delete ${post_path}"
+	echo "Delete ${post_path} done."
+}
+cmd_reg del
+
+function auto_complete_opt()
+{
+	echo "${ALL_CMD[*]}"
+}
+
+function usage()
+{
+	local oifs=${IFS}
+	IFS='|'
+	echo "`basename $0` [`auto_complete_opt`]. "
+	echo -e "\tnew <article name>: post new blog. "
+	echo -e "\tpreview: watch on your localsite."
+	echo -e "\tdeploy: upload page to hosting."
+	echo -e "\tgenerate: generate all articles."
+	echo -e "\tlist: list all articles."
+	echo -e "\tdel <article name1> ... : del articles."
+	echo -e "\thelp: show this message."
+	IFS=${oifs}
+	exit -1
+}
+
+opt=$1
+shift
+
+case ${opt} in
+	new)
+		new $1
+		;;
+
+	preview)
+		preview
+		;;
+
+	deploy )
+		deploy
+		;;
+
+	generate )
+		generate
+		;;
+
+	list)
+		list_post
+		;;
+
+	del)
+		del_post $*
+		;;
+
+	auto-complete-opt)
+		auto_complete_opt
+		;;
+	* )
+		usage
+		;;
+esac
+exit 0
+
